@@ -91,6 +91,41 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+          double steer_value = j[1]["steering_angle"];
+          double throttle_value = j[1]["throttle"];
+
+
+          // for (auto i = ptsx.begin(); i != ptsx.end(); ++i)
+          // {
+          //   std::cout << "ptsx " << *i << std::endl;
+          //   std::cout << "ptsy " << *i << std::endl;
+          // }
+          // for (int i=0; i<ptsx.size(); ++i)
+          // {
+          //   std::cout << "ptsx " << i << " - " << ptsx[i] << std::endl;
+          //   std::cout << "ptsy " << i << " - " << ptsy[i] << std::endl;
+          // }
+          // std::cout << "px, py, psi, v, steer, throttle " << px << " - " << py << " - " << psi << " - " << v << " - " << steer_value << " - " << throttle_value << std::endl;
+
+
+          for (int i=0; i<ptsx.size(); i++)
+          {
+            double shift_x = ptsx[i] - px;
+            double shift_y = ptsy[i] - py;
+
+            ptsx[i] = ((shift_x * cos(0-psi)) - (shift_y * sin(0-psi)));
+            ptsy[i] = ((shift_x * sin(0-psi)) + (shift_y * cos(0-psi)));
+
+            std::cout << "local waypts x/y " << ptsx[i] << " - " << ptsy[i] << std::endl;
+          }
+
+          double *ptrx = &ptsx[0];
+          double *ptry = &ptsy[0];
+          Eigen::Map<Eigen::VectorXd> ptsx_trans(ptrx, 6);
+          Eigen::Map<Eigen::VectorXd> ptsy_trans(ptry, 6);
+
+          auto coeffs = polyfit(ptsx_trans, ptsy_trans, 3);
+
 
           /*
           * TODO: Calculate steering angle and throttle using MPC.
@@ -98,8 +133,6 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
-          double steer_value;
-          double throttle_value;
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -120,6 +153,21 @@ int main() {
           //Display the waypoints/reference line
           vector<double> next_x_vals;
           vector<double> next_y_vals;
+
+          double poly_inc = 2.5;
+          int num_points = 25;
+          for (int i=1; i<num_points; i++)
+          {
+            next_x_vals.push_back(poly_inc * i);
+            //next_y_vals.push_back(0);
+            next_y_vals.push_back(polyeval(coeffs, poly_inc*i));
+          }
+
+          for (int i=0; i<next_x_vals.size(); ++i)
+          {
+            std::cout << "next_x_vals " << i << " - " << next_x_vals[i] << std::endl;
+            std::cout << "next_y_vals " << i << " - " << next_y_vals[i] << std::endl;
+          }
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
