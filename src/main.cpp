@@ -94,19 +94,19 @@ int main() {
           //double steer_value = j[1]["steering_angle"];
           //double throttle_value = j[1]["throttle"];
 
-
-          // for (auto i = ptsx.begin(); i != ptsx.end(); ++i)
-          // {
-          //   std::cout << "ptsx " << *i << std::endl;
-          //   std::cout << "ptsy " << *i << std::endl;
-          // }
-          // for (int i=0; i<ptsx.size(); ++i)
-          // {
-          //   std::cout << "ptsx " << i << " - " << ptsx[i] << std::endl;
-          //   std::cout << "ptsy " << i << " - " << ptsy[i] << std::endl;
-          // }
-          // std::cout << "px, py, psi, v, steer, throttle " << px << " - " << py << " - " << psi << " - " << v << " - " << steer_value << " - " << throttle_value << std::endl;
-
+#if ENABLE_DEBUG
+          for (auto i = ptsx.begin(); i != ptsx.end(); ++i)
+          {
+            std::cout << "ptsx " << *i << std::endl;
+            std::cout << "ptsy " << *i << std::endl;
+          }
+          for (int i=0; i<ptsx.size(); ++i)
+          {
+            std::cout << "ptsx " << i << " - " << ptsx[i] << std::endl;
+            std::cout << "ptsy " << i << " - " << ptsy[i] << std::endl;
+          }
+          std::cout << "px, py, psi, v, steer, throttle " << px << " - " << py << " - " << psi << " - " << v << " - " << steer_value << " - " << throttle_value << std::endl;
+#endif
 
           for (int i=0; i<ptsx.size(); i++)
           {
@@ -116,7 +116,9 @@ int main() {
             ptsx[i] = ((shift_x * cos(0-psi)) - (shift_y * sin(0-psi)));
             ptsy[i] = ((shift_x * sin(0-psi)) + (shift_y * cos(0-psi)));
 
-            //std::cout << "local waypts x/y " << ptsx[i] << " - " << ptsy[i] << std::endl;
+#if ENABLE_DEBUG
+            std::cout << "local waypts x/y " << ptsx[i] << " - " << ptsy[i] << std::endl;
+#endif
           }
 
           double *ptrx = &ptsx[0];
