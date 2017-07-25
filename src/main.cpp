@@ -195,7 +195,9 @@ int main() {
           msgJson["steering_angle"] = vars[0] / (deg2rad(25)*2.67);
           msgJson["throttle"] = vars[1];
 
-          std::cout << "st/thr " << vars[0] / (deg2rad(25)*2.67) << " " << vars[1] << std::endl;
+#if ENABLE_DEBUG
+          std::cout << "st/thr " << vars[0] / (deg2rad(25) * LF) << " " << vars[1] << std::endl;
+#endif
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
