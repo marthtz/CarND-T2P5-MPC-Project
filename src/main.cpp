@@ -91,7 +91,7 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
-          //double steer_value = j[1]["steering_angle"];
+          double steer_value = j[1]["steering_angle"];
           //double throttle_value = j[1]["throttle"];
 
 #if ENABLE_DEBUG
@@ -152,6 +152,8 @@ int main() {
           //state << px, py, psi, v, cte, epsi;
           state << 0, 0, 0, v, cte, epsi;
 
+          std::cout << "cte, epsi   " << cte << " " << epsi << std::endl;
+
           // std::vector<double> x_vals     = {state[0]};
           // std::vector<double> y_vals     = {state[1]};
           // std::vector<double> psi_vals   = {state[2]};
@@ -160,6 +162,24 @@ int main() {
           // std::vector<double> epsi_vals  = {state[5]};
           // std::vector<double> delta_vals = {};
           // std::vector<double> a_vals     = {};
+
+          const double latency = 0.1;
+          const double Lf = 2.67;
+
+          // x and y have been transformed to local coordinates and are 0
+          // v is considered constant during latency
+          // dpsi needs to be double-checked probably not correct!
+          double dx = v * std::cos(steer_value) * latency;
+          double dy = -v * std::sin(steer_value) * latency;
+          double dpsi = -(v * steer_value * latency) / Lf;
+          //double dv = v + throttle_value * latency;
+ 
+          cte = polyeval(coeffs, dx);
+          epsi = -atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
+
+          state << dx, dy, dpsi, v, cte, epsi;
+
+          std::cout << "dx, dy, dpsi, v, cte, epsi" << dx << " " << dy << " " << dpsi << " " << v << " " << cte << " " << epsi << std::endl;
 
           auto vars = mpc.Solve(state, coeffs);
 
