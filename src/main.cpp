@@ -170,12 +170,12 @@ int main() {
           // v is considered constant during latency
           // dpsi needs to be double-checked probably not correct!
           double dx = v * std::cos(steer_value) * latency;
-          double dy = -v * std::sin(steer_value) * latency;
+          double dy = v * std::sin(steer_value) * latency;
           double dpsi = -(v * steer_value * latency) / Lf;
           //double dv = v + throttle_value * latency;
  
           cte = polyeval(coeffs, dx);
-          epsi = -atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
+          epsi = atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
 
           state << dx, dy, dpsi, v, cte, epsi;
 
