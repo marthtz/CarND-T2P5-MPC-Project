@@ -12,6 +12,14 @@
 // for convenience
 using json = nlohmann::json;
 
+
+// Switches
+//==============================================================================
+#define ENABLE_LATENCY_COMPENSATION 1
+#define ENABLE_DEBUG 0
+//==============================================================================
+
+
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
@@ -87,11 +95,12 @@ int main() {
           // j[1] is the data JSON object
           vector<double> ptsx = j[1]["ptsx"];
           vector<double> ptsy = j[1]["ptsy"];
-          double px = j[1]["x"];
-          double py = j[1]["y"];
-          double psi = j[1]["psi"];
-          double v = j[1]["speed"];
-          double steer_value = j[1]["steering_angle"];
+          double px           = j[1]["x"];
+          double py           = j[1]["y"];
+          double psi          = j[1]["psi"];
+          double v            = j[1]["speed"];
+          double steer_value  = j[1]["steering_angle"];
+          // Throttle not required as v is considered constant during latency
           //double throttle_value = j[1]["throttle"];
 
 #if ENABLE_DEBUG
@@ -108,6 +117,9 @@ int main() {
           std::cout << "px, py, psi, v, steer, throttle " << px << " - " << py << " - " << psi << " - " << v << " - " << steer_value << " - " << throttle_value << std::endl;
 #endif
 
+          // Transform reported coordinated to local car coordinates
+          // This will put x, y and psi to 0
+          //====================================================================
           for (int i=0; i<ptsx.size(); i++)
           {
             double shift_x = ptsx[i] - px;
@@ -135,72 +147,61 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
+          // Calculate vehicle state
+          //====================================================================
+          Eigen::VectorXd state(6);
 
+#if ENABLE_LATENCY_COMPENSATION
+          // Incorporate latency by predicting vehicle state (position etc.)
+          // after latency
+          const double latency_s = 0.1;
+          const double Lf = 2.67;
+
+          double dx   = v * std::cos(steer_value) * latency_s;
+          double dy   = v * std::sin(steer_value) * latency_s;
+          double dpsi = -(v * steer_value * latency_s) / Lf;
+          // Velocity is considered constant in latenct interval
+          //double dv = v + throttle_value * latency_s;
+
+          double cte = polyeval(coeffs, dx);
+          double epsi = atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
+
+          // Set state with predicted state after latency
+          state << dx, dy, dpsi, v, cte, epsi;
+#else
           // Calculate the cross track error
-          //double cte = polyeval(coeffs, px) - py;
           double cte = polyeval(coeffs, 0);
 
           // Calculate the orientation error
-          // Due to the sign starting at 0, the orientation error is -f'(x).
-          // derivative of coeffs[0] + coeffs[1] * x -> coeffs[1]
-          // double epsi = psi - atan(coeffs[1] +
-          //                          (2 * coeffs[2] * px) +
-          //                          (3 * coeffs[3] * px * px));
           double epsi = -atan(coeffs[1]);
 
-          Eigen::VectorXd state(6);
-          //state << px, py, psi, v, cte, epsi;
+          // Coordinated are transformed to car coordinates, therefore,
+          // x, y and psi become 0
           state << 0, 0, 0, v, cte, epsi;
+#endif
 
-          std::cout << "cte, epsi   " << cte << " " << epsi << std::endl;
 
-          // std::vector<double> x_vals     = {state[0]};
-          // std::vector<double> y_vals     = {state[1]};
-          // std::vector<double> psi_vals   = {state[2]};
-          // std::vector<double> v_vals     = {state[3]};
-          // std::vector<double> cte_vals   = {state[4]};
-          // std::vector<double> epsi_vals  = {state[5]};
-          // std::vector<double> delta_vals = {};
-          // std::vector<double> a_vals     = {};
-
-          const double latency = 0.1;
-          const double Lf = 2.67;
-
-          // x and y have been transformed to local coordinates and are 0
-          // v is considered constant during latency
-          // dpsi needs to be double-checked probably not correct!
-          double dx = v * std::cos(steer_value) * latency;
-          double dy = v * std::sin(steer_value) * latency;
-          double dpsi = -(v * steer_value * latency) / Lf;
-          //double dv = v + throttle_value * latency;
- 
-          cte = polyeval(coeffs, dx);
-          epsi = atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
-
-          state << dx, dy, dpsi, v, cte, epsi;
-
-          std::cout << "dx, dy, dpsi, v, cte, epsi" << dx << " " << dy << " " << dpsi << " " << v << " " << cte << " " << epsi << std::endl;
-
+          // Feed state and coeefs to MPC
+          //====================================================================
           auto vars = mpc.Solve(state, coeffs);
 
-          // x_vals.push_back(vars[0]);
-          // y_vals.push_back(vars[1]);
-          // psi_vals.push_back(vars[2]);
-          // v_vals.push_back(vars[3]);
-          // cte_vals.push_back(vars[4]);
-          // epsi_vals.push_back(vars[5]);
-          // delta_vals.push_back(vars[6]);
-          // a_vals.push_back(vars[7]);
 
-          // state << vars[0], vars[1], vars[2], vars[3], vars[4], vars[5];
-
+          // Generate data for simulator
+          //====================================================================
           json msgJson;
 
+          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
+          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
+          msgJson["steering_angle"] = vars[0] / (deg2rad(25)*2.67);
+          msgJson["throttle"] = vars[1];
 
-          //Display the MPC predicted trajectory 
+
+          // Display the MPC predicted trajectory (green line)
+          //====================================================================
+          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
+          // the points in the simulator are connected by a Yellow line
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
-
 
           for (int i=2; i<vars.size(); i++)
           {
@@ -209,23 +210,17 @@ int main() {
             else
               mpc_y_vals.push_back(vars[i]);
           }
-
-          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
-          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = vars[0] / (deg2rad(25)*2.67);
-          msgJson["throttle"] = vars[1];
+          msgJson["mpc_x"] = mpc_x_vals;
+          msgJson["mpc_y"] = mpc_y_vals;
 
 #if ENABLE_DEBUG
           std::cout << "st/thr " << vars[0] / (deg2rad(25) * LF) << " " << vars[1] << std::endl;
 #endif
 
+          // Display the waypoints/reference line (yellow line)
+          //====================================================================
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
-
-          msgJson["mpc_x"] = mpc_x_vals;
-          msgJson["mpc_y"] = mpc_y_vals;
-
-          //Display the waypoints/reference line
           vector<double> next_x_vals;
           vector<double> next_y_vals;
 
@@ -234,19 +229,8 @@ int main() {
           for (int i=1; i<num_points; i++)
           {
             next_x_vals.push_back(poly_inc * i);
-            //next_y_vals.push_back(0);
             next_y_vals.push_back(polyeval(coeffs, poly_inc*i));
           }
-
-          // for (int i=0; i<next_x_vals.size(); ++i)
-          // {
-          //   std::cout << "next_x_vals " << i << " - " << next_x_vals[i] << std::endl;
-          //   std::cout << "next_y_vals " << i << " - " << next_y_vals[i] << std::endl;
-          // }
-
-          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Yellow line
-
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 
