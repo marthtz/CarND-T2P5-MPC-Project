@@ -13,10 +13,12 @@
 using json = nlohmann::json;
 
 
-// Switches
+// Switches and constants
 //==============================================================================
-#define ENABLE_LATENCY_COMPENSATION 1
-#define ENABLE_DEBUG 0
+#define ENABLE_LATENCY_COMPENSATION (1)
+#define ENABLE_DEBUG (0)
+#define LF (2.67)
+#define LATENCY_S (0.1)
 //==============================================================================
 
 
@@ -123,24 +125,30 @@ int main() {
           // Transform reported coordinated to local car coordinates
           // This will put x, y and psi to 0
           //====================================================================
+          double sin_psi = sin(0-psi);
+          double cos_psi = cos(0-psi);
           for (i=0; i<ptsx.size(); i++)
           {
             double shift_x = ptsx[i] - px;
             double shift_y = ptsy[i] - py;
 
-            ptsx[i] = ((shift_x * cos(0-psi)) - (shift_y * sin(0-psi)));
-            ptsy[i] = ((shift_x * sin(0-psi)) + (shift_y * cos(0-psi)));
+            ptsx[i] = ((shift_x * cos_psi) - (shift_y * sin_psi));
+            ptsy[i] = ((shift_x * sin_psi) + (shift_y * cos_psi));
 
 #if ENABLE_DEBUG
             std::cout << "local waypts x/y " << ptsx[i] << " - " << ptsy[i] << std::endl;
 #endif
           }
 
-          double *ptrx = &ptsx[0];
-          double *ptry = &ptsy[0];
-          Eigen::Map<Eigen::VectorXd> ptsx_trans(ptrx, 6);
-          Eigen::Map<Eigen::VectorXd> ptsy_trans(ptry, 6);
 
+          // Map transformed waypoints from vector<double> to VectorXd
+          //====================================================================
+          Eigen::Map<Eigen::VectorXd> ptsx_trans(&ptsx[0], 6);
+          Eigen::Map<Eigen::VectorXd> ptsy_trans(&ptsy[0], 6);
+
+
+          // Fit a polynomial
+          //====================================================================
           auto coeffs = polyfit(ptsx_trans, ptsy_trans, 3);
 
 
@@ -155,36 +163,37 @@ int main() {
           Eigen::VectorXd state(6);
 
 #if ENABLE_LATENCY_COMPENSATION
-          // Incorporate latency by predicting vehicle state (position etc.)
-          // after latency
-          const double latency_s = 0.1;
-          const double Lf = 2.67;
-
-          double dx   = v * std::cos(steer_value) * latency_s;
-          double dy   = v * std::sin(steer_value) * latency_s;
-          double dpsi = -(v * steer_value * latency_s) / Lf;
+          // Incorporate latency by predicting vehicle state (position etc.) after latency
+          double dx   = v * std::cos(steer_value) * LATENCY_S;
+          double dy   = v * std::sin(steer_value) * LATENCY_S;
+          double dpsi = -(v * steer_value * LATENCY_S) / LF;
           // Velocity is considered constant in latenct interval
-          //double dv = v + throttle_value * latency_s;
+          //double dv = v + throttle_value * LATENCY_S;
 
+          // Calculate the cross track error
           double cte = polyeval(coeffs, dx);
+
+          // Calculate the orientation error
           double epsi = -atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
 
           // Set state with predicted state after latency
+          //====================================================================
           state << dx, dy, dpsi, v, cte, epsi;
 #else
-          // Calculate the cross track error
+          // Calculate the cross track error - x is 0 due to transformation
           double cte = polyeval(coeffs, 0);
 
-          // Calculate the orientation error
+          // Calculate the orientation error - all x are 0 due to transformation
           double epsi = -atan(coeffs[1]);
 
           // Coordinated are transformed to car coordinates, therefore,
           // x, y and psi become 0
+          //====================================================================
           state << 0, 0, 0, v, cte, epsi;
 #endif
 
 
-          // Feed state and coeefs to MPC
+          // Feed state and coeffs to MPC and solve it (reduce cost)
           //====================================================================
           auto vars = mpc.Solve(state, coeffs);
 
