@@ -195,7 +195,7 @@ int main() {
 
           // Feed state and coeffs to MPC and solve it (reduce cost)
           //====================================================================
-          auto vars = mpc.Solve(state, coeffs);
+          auto mpcResult = mpc.Solve(state, coeffs);
 
 
           // Generate data for simulator
@@ -204,29 +204,19 @@ int main() {
 
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = vars[0] / (deg2rad(25)*2.67);
-          msgJson["throttle"] = vars[1];
+          msgJson["steering_angle"] = mpcResult[0] / (deg2rad(25)*2.67);
+          msgJson["throttle"] = mpcResult[1];
 
 
           // Display the MPC predicted trajectory (green line)
           //====================================================================
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
-          vector<double> mpc_x_vals;
-          vector<double> mpc_y_vals;
-
-          for (i=2; i<vars.size(); i++)
-          {
-            if (i%2==0)
-              mpc_x_vals.push_back(vars[i]);
-            else
-              mpc_y_vals.push_back(vars[i]);
-          }
-          msgJson["mpc_x"] = mpc_x_vals;
-          msgJson["mpc_y"] = mpc_y_vals;
+          msgJson["mpc_x"] = mpc.predicted_x;
+          msgJson["mpc_y"] = mpc.predicted_y;
 
 #if ENABLE_DEBUG
-          std::cout << "st/thr " << vars[0] / (deg2rad(25) * LF) << " " << vars[1] << std::endl;
+          std::cout << "st/thr " << mpcResult[0] / (deg2rad(25) * LF) << " " << mpcResult[1] << std::endl;
 #endif
 
           // Display the waypoints/reference line (yellow line)

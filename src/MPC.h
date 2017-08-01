@@ -12,6 +12,10 @@ class MPC {
 
   virtual ~MPC();
 
+  // Savex/y values for predicted line (green)
+  vector<double> predicted_x;
+  vector<double> predicted_y;
+
   // Solve the model given an initial state and polynomial coefficients.
   // Return the first actuatotions.
   vector<double> Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs);

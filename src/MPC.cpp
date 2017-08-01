@@ -156,8 +156,16 @@ class FG_eval
 //
 // MPC class definition implementation.
 //
-MPC::MPC() {}
+// Constructor
+MPC::MPC()
+{
+  // Resize predicted x/y vectors to size of N-1 - skip first actuation
+  this->predicted_x.resize(N-1);
+  this->predicted_y.resize(N-1);
+}
+// Destructor
 MPC::~MPC() {}
+
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs)
 {
@@ -266,18 +274,19 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs)
   auto cost = solution.obj_value;
   std::cout << "Cost " << cost << std::endl;
 
+// Save predicted x/y to display predicted trajectory - skip first actuation
+  for (i=0; i<N-1; i++)
+  {
+    this->predicted_x[i] = solution.x[x_start + i + 1];
+    this->predicted_y[i] = solution.x[y_start + i + 1];
+  }
+
   // TODO: Return the first actuator values. The variables can be accessed with
   // `solution.x[i]`.
   std::vector<double> result;
 
   result.push_back(solution.x[delta_start]);
   result.push_back(solution.x[a_start]);
-
-  for (i=0; i<N-1; i++)
-  {
-    result.push_back(solution.x[x_start + i + 1]);
-    result.push_back(solution.x[y_start + i + 1]);
-  }
 
   return result;
 }
