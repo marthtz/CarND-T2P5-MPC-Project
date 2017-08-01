@@ -81,6 +81,9 @@ int main() {
 
   h.onMessage([&mpc](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
+    // Loop counter
+    unsigned int i;
+
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -104,12 +107,12 @@ int main() {
           //double throttle_value = j[1]["throttle"];
 
 #if ENABLE_DEBUG
-          for (auto i = ptsx.begin(); i != ptsx.end(); ++i)
+          for (auto ii = ptsx.begin(); ii != ptsx.end(); ++ii)
           {
-            std::cout << "ptsx " << *i << std::endl;
-            std::cout << "ptsy " << *i << std::endl;
+            std::cout << "ptsx " << *ii << std::endl;
+            std::cout << "ptsy " << *ii << std::endl;
           }
-          for (int i=0; i<ptsx.size(); ++i)
+          for (i=0; i<ptsx.size(); ++i)
           {
             std::cout << "ptsx " << i << " - " << ptsx[i] << std::endl;
             std::cout << "ptsy " << i << " - " << ptsy[i] << std::endl;
@@ -120,7 +123,7 @@ int main() {
           // Transform reported coordinated to local car coordinates
           // This will put x, y and psi to 0
           //====================================================================
-          for (int i=0; i<ptsx.size(); i++)
+          for (i=0; i<ptsx.size(); i++)
           {
             double shift_x = ptsx[i] - px;
             double shift_y = ptsy[i] - py;
@@ -164,7 +167,7 @@ int main() {
           //double dv = v + throttle_value * latency_s;
 
           double cte = polyeval(coeffs, dx);
-          double epsi = atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
+          double epsi = -atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
 
           // Set state with predicted state after latency
           state << dx, dy, dpsi, v, cte, epsi;
@@ -203,7 +206,7 @@ int main() {
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
 
-          for (int i=2; i<vars.size(); i++)
+          for (i=2; i<vars.size(); i++)
           {
             if (i%2==0)
               mpc_x_vals.push_back(vars[i]);
@@ -225,8 +228,8 @@ int main() {
           vector<double> next_y_vals;
 
           double poly_inc = 2.5;
-          int num_points = 25;
-          for (int i=1; i<num_points; i++)
+          unsigned int num_points = 25;
+          for (i=1; i<num_points; i++)
           {
             next_x_vals.push_back(poly_inc * i);
             next_y_vals.push_back(polyeval(coeffs, poly_inc*i));
