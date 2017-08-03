@@ -77,6 +77,8 @@ We now have all 6 state variables that are fed to the MPC, where x,y and psi are
 
 ## Final Result
 
+The reference speed has been chosen to deliver quite a smooth driving experience. The car could also drive faster, however, the drive wil be more rough. The current cost factors need to be adjusted to improve the drive for higher speeds.
+
 A video of the car driving one lap in the simulator is uploaded to Youtube:
 
 [![](p5_screenshot_yt.jpg)](https://youtu.be/c8Hnqy5eHzE)
