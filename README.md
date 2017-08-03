@@ -9,14 +9,14 @@ Self-Driving Car Engineer Nanodegree Program
 
 The task was to build a Model Predictive Controller (MPC) and tuning of its parameters so the car drives savely around the track in the provided simulator. To simulate real-word behaviour an artifical latency of 100ms is added to the actuators of the simulated car.
 
-A video of the car driving one lap in the simulator is uploaded to Youtube:
-
-   [![](p5_screenshot_yt.jpg)](https://youtu.be/c8Hnqy5eHzE)
-
 The program is executed without arguments using the following command:
 ```
 ./mpc
 ```
+
+A video of the car driving one lap in the simulator is uploaded to Youtube:
+
+   [![](p5_screenshot_yt.jpg)](https://youtu.be/c8Hnqy5eHzE)
 
 ## The Model
 
@@ -41,8 +41,8 @@ Where:
 ## Timestep Length and Elapsed Duration (N & dt)
 To choose N (number of future prediction) and dt (update time step) to considerations have to be made. First, they have to match roughly the vehicle that is controlled. A car can drive quite fast and travels a fair distance in a short amount of time (e.g. ~28m at 100km/h). Therefore, N and dt shouldn't make a prediction too far in the future.
 Second, both parameters define the number of variables that are optimized by the MPC and drive the computational cost.
-I first started with N = 10 and dt = 0.15, which corresponds to a prediction horizon of 1.5 sec. I chose to start with a dt to be larger than the added latency so that the latenct didn't matter at this point of time.
-Later in the project I reduced dt to 0.05 to see the effects of latency. I kept N = 10 in order to keep the processing load low (prediction horizon 0.5 sec). Given that the car travels quite fast on the track I think the chosen values are reasonable.
+I first started with ```N = 10``` and ```dt = 0.15```, which corresponds to a prediction horizon of 1.5 sec. I chose to start with a dt to be larger than the added latency so that the latenct didn't matter at this point of time.
+Later in the project I reduced dt to 0.05 to see the effects of latency. I kept ```N = 10``` in order to keep the processing load low (prediction horizon 0.5 sec). Given that the car travels quite fast on the track I think the chosen values are reasonable.
 
 ## Polynomial Fitting and MPC Preprocessing
 The simulator returns all coordinates and orientation in global coordinates. However, transforming these global values to the car's coordinate systems simplifies calculations a lot. The transformation is a standard 2-D transfomation shown in previous lessons and that was used in previous projects (e.g. Particle Filter) as well:
@@ -52,7 +52,7 @@ The simulator returns all coordinates and orientation in global coordinates. How
 This transformation leads to x, y and psi being 0.
 Hence, the state vector only consists of V, CTE and EPSI.
 
-I used the provided 'polyfit()' function to fit a polynomial the the transformed waypoints. The polynomial chose was of 3rd order. As stated earlier, due to the transformation x, y and psi are 0. As a consequence, CTE and EPSI can be calculated as follows:
+I used the provided ```polyfit()``` function to fit a polynomial the the transformed waypoints. The polynomial chose was of 3rd order. As stated earlier, due to the transformation x, y and psi are 0. As a consequence, CTE and EPSI can be calculated as follows:
 * CTE = polyeval(coeffs, 0)
 * EPSI = -atan(coeffs[1])
 
