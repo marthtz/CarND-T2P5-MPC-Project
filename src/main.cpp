@@ -171,7 +171,7 @@ int main() {
           //double dv = v + throttle_value * LATENCY_S;
 
           // Calculate the cross track error
-          double cte = polyeval(coeffs, dx);
+          double cte = polyeval(coeffs, dx) - dy;
 
           // Calculate the orientation error
           double epsi = -atan(coeffs(1) + coeffs(2) * dx + coeffs(3) * dx * dx);
